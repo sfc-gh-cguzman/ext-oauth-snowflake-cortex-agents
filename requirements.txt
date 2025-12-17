@@ -1,0 +1,15 @@
+# FastAPI and Web Server
+fastapi==0.116.1
+uvicorn[standard]==0.35.0
+
+# HTTP Requests
+requests==2.32.3
+
+# Snowflake
+snowflake-connector-python==3.17.3
+
+# Environment Variables
+python-dotenv==1.0.0
+
+# Python version: 3.8+
+
