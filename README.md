@@ -1,42 +1,34 @@
 # OAuth Authorization Code Flow with Snowflake Cortex Agents
 
-> **A complete guide to implementing secure, user-based authentication for Snowflake applications**
+A reference implementation of OAuth 2.0 Authorization Code Flow with PKCE for Snowflake applications. This repository demonstrates how to implement user-based authentication instead of service accounts, enabling individual user tracking and audit trails.
 
-This repository demonstrates enterprise-grade OAuth 2.0 Authorization Code Flow with PKCE (Proof Key for Code Exchange) for Snowflake applications, featuring Cortex AI capabilities. Built for organizations that need to track individual user access and eliminate shared service accounts.
+## Why User-Based Authentication
 
----
+Traditional Snowflake integrations typically use a shared service account, which creates several problems:
 
-## 🎯 Why This Matters
+**Service Account Limitations:**
+- No attribution for individual user actions
+- Difficult to audit who accessed what data
+- Single point of compromise affects all users
+- Cannot enforce user-specific permissions
+- Poor governance and compliance posture
 
-### The Problem with Service Accounts
+**OAuth Benefits:**
+- Every query runs as the authenticated user in Snowflake
+- Complete audit trail with user attribution
+- Compromised tokens isolated to individual users
+- Native Snowflake RBAC applies per user
+- Meets regulatory requirements (SOC 2, GDPR, HIPAA)
+- No shared credentials to manage
 
-Traditional Snowflake integrations often use a single "service account" shared across all users. This creates significant challenges:
-
-- ❌ **No User Attribution** - Can't track which individual performed which action
-- ❌ **Compliance Risks** - Difficult to audit individual user activity
-- ❌ **Security Concerns** - One compromised credential affects all users
-- ❌ **Access Control Limitations** - Can't enforce user-specific permissions
-- ❌ **Poor Governance** - No visibility into who accessed what data
-
-### The OAuth Solution
-
-With OAuth Authorization Code Flow, **every user authenticates with their own identity**:
-
-- ✅ **Individual User Tracking** - Every query runs as the authenticated user in Snowflake
-- ✅ **Full Audit Trail** - Complete visibility into who did what, when
-- ✅ **Enhanced Security** - Compromised tokens only affect one user, not all
-- ✅ **Granular Access Control** - Snowflake roles and permissions apply per user
-- ✅ **Compliance Ready** - Meet regulatory requirements for user attribution
-- ✅ **Zero Shared Credentials** - No service account passwords to manage
-
-### Real Business Impact
+### Query Attribution Example
 
 **Before OAuth (Service Account):**
 ```
 Query History:
 - User: SERVICE_ACCOUNT
 - Query: SELECT * FROM SENSITIVE_DATA
-- Who actually ran this? Unknown ❌
+- Who ran this? Unknown
 ```
 
 **After OAuth (Individual Identity):**
@@ -44,155 +36,131 @@ Query History:
 Query History:
 - User: john.doe@company.com
 - Query: SELECT * FROM SENSITIVE_DATA
-- Who actually ran this? John Doe ✅
 - Timestamp: 2024-01-15 10:23:45
 - IP Address: 192.168.1.100
 ```
 
----
+## Project Structure
 
-## 🏗️ Project Structure
+This repository contains three applications demonstrating OAuth implementations of increasing complexity:
 
-This repository contains three applications demonstrating progressively complex OAuth implementations:
+### `oauth_testing/` - OAuth Fundamentals
 
-### 1️⃣ **`oauth_testing/`** - OAuth Fundamentals
-**Purpose**: Learn and test OAuth flow step-by-step
+Learn and test the OAuth flow step-by-step without application complexity.
 
-Perfect for understanding the mechanics of OAuth without the complexity of a full application.
-
-**What's Inside:**
+**Contents:**
 - `1-get_okta_token.py` - Interactive script to obtain refresh tokens
 - `2-oauth_okta_snowflake.py` - Exchange refresh tokens for access tokens
 - `3-validate-snowflake.py` - Test Snowflake connection with OAuth token
 
-**Use Case:** 
+**Use Cases:**
 - Testing OAuth configuration
 - Understanding token lifecycle
 - Debugging authentication issues
-- Educational purposes
 
----
+### `simple_app/` - Customer Application with Cortex Analyst
 
-### 2️⃣ **`simple_app/`** - Customer Application with Cortex Analyst
-**Purpose**: Production-ready web application with AI-powered analytics
+Production-ready FastAPI application demonstrating OAuth with Snowflake's Cortex Analyst for natural language queries.
 
-A full FastAPI application demonstrating OAuth in a real-world scenario with Snowflake's Cortex Analyst for natural language queries.
-
-**What's Inside:**
+**Contents:**
 - Complete OAuth login/logout flow
 - Cortex Analyst chatbot interface
 - Natural language to SQL conversion
 - Session management
 - User dashboard
 
-**Use Case:**
-- Customer-facing analytics portal
+**Use Cases:**
+- Customer-facing analytics portals
 - Self-service data exploration
 - Business intelligence dashboards
 - AI-powered reporting
 
-**Key Features:**
-- 🤖 Ask questions in plain English ("Show me top 10 customers")
-- 📊 Automatic SQL generation and execution
-- 📈 Data visualization
-- 🔐 Each user sees only their authorized data
+**Features:**
+- Natural language queries ("Show me top 10 customers")
+- Automatic SQL generation and execution
+- Data visualization
+- Row-level security per user
 
----
+### `agent_app/` - Multi-Agent Streaming Chat
 
-### 3️⃣ **`agent_app/`** - Multi-Agent Streaming Chat
-**Purpose**: Advanced application with real-time streaming and multiple AI agents
+Advanced application with real-time streaming responses from multiple Cortex Agents.
 
-Demonstrates the cutting edge: real-time streaming responses from multiple Cortex Agents with full user attribution.
-
-**What's Inside:**
+**Contents:**
 - Server-Sent Events (SSE) for real-time streaming
 - Multi-agent selection interface
 - Collapsible thinking process view
 - Dynamic table and chart rendering
 - Real-time status updates
 
-**Use Case:**
-- Advanced AI assistant applications
+**Use Cases:**
+- AI assistant applications
 - Multi-model AI workflows
 - Real-time data analysis
-- Complex decision support systems
+- Decision support systems
 
-**Key Features:**
-- 🌊 Watch AI responses stream in real-time
-- 🎯 Switch between different specialized agents
-- 🧠 See the agent's reasoning process
-- 📊 Interactive visualizations
-- 💬 Contextual conversations
+**Features:**
+- Real-time streaming responses
+- Multiple specialized agents
+- Agent reasoning visibility
+- Interactive visualizations
+- Contextual conversations
 
----
+## OAuth Authorization Code Flow
 
-## 🔐 OAuth Authorization Code Flow Explained
+### Overview
 
-### What is OAuth?
+OAuth 2.0 is an industry-standard authorization protocol. Unlike shared service accounts, OAuth provides each user with individual, temporary credentials.
 
-OAuth 2.0 is an industry-standard protocol for authorization. Think of it like hotel key cards:
+### Flow Steps
 
-- **Old Way (Service Account):** Everyone shares one master key
-- **OAuth Way:** Each guest gets their own temporary key card that only works for them
+**Step 1: User Initiates Login**
+- User clicks "Login"
+- Application redirects to OAuth provider (Okta)
+- User enters credentials
+- Credentials never touch the application
 
-### The Authorization Code Flow (Step-by-Step)
+**Step 2: Authorization Grant**
+- OAuth provider validates user
+- Generates single-use authorization code
+- Redirects back to application with code
+- Code expires in seconds
 
-#### **Step 1: User Initiates Login**
-```
-User clicks "Login" → App redirects to Okta → User enters credentials
-```
-**Security Benefit:** User credentials never touch your application
+**Step 3: Token Exchange**
+- Application exchanges authorization code for tokens
+- Receives access token and refresh token
+- Tokens are short-lived and revocable
 
-#### **Step 2: Authorization Grant**
-```
-Okta validates user → Generates authorization code → Redirects back to app
-```
-**Security Benefit:** Code is single-use and expires in seconds
+**Step 4: Access Resources**
+- Application presents access token to Snowflake
+- Snowflake validates token and extracts user identity
+- Query executes as the authenticated user
 
-#### **Step 3: Token Exchange**
-```
-App exchanges code for tokens → Receives access token + refresh token
-```
-**Security Benefit:** Tokens are short-lived and revocable
+**Step 5: Token Refresh**
+- Access token expires (typically 1 hour)
+- Application uses refresh token to obtain new access token
+- No user interaction required
 
-#### **Step 4: Access Resources**
-```
-App uses access token → Snowflake validates → Query runs as authenticated user
-```
-**Security Benefit:** Every action is tied to the real user's identity
+### PKCE (Proof Key for Code Exchange)
 
-#### **Step 5: Token Refresh**
-```
-Access token expires → App uses refresh token → Gets new access token
-```
-**Security Benefit:** Minimal exposure window for active tokens
+PKCE adds additional security to the authorization code flow:
 
-### PKCE: Enhanced Security
-
-PKCE (Proof Key for Code Exchange) adds an extra security layer:
-
-1. App generates random `code_verifier` and `code_challenge`
+1. Application generates random `code_verifier` and derives `code_challenge`
 2. Sends `code_challenge` with authorization request
 3. Sends `code_verifier` with token exchange
 4. Server validates they match
 
-**Protection Against:** Authorization code interception attacks
+This prevents authorization code interception attacks, particularly important for mobile and single-page applications.
 
----
+## Snowflake Configuration
 
-## ⚙️ Snowflake Configuration
+### Security Integration
 
-### Creating the Security Integration
+A Security Integration in Snowflake is required to validate OAuth tokens from external providers. This one-time configuration:
 
-Before your applications can use OAuth with Snowflake, you must create a **Security Integration** in Snowflake. This is a one-time setup that tells Snowflake to trust tokens from your OAuth provider (Okta, Azure AD, etc.).
-
-#### What is a Security Integration?
-
-A Security Integration is a Snowflake object that:
-- ✅ Validates OAuth tokens from your authorization server
-- ✅ Maps external user identities to Snowflake users
-- ✅ Defines which roles users can access
-- ✅ Ensures secure communication between Snowflake and your OAuth provider
+- Validates OAuth tokens from your authorization server
+- Maps external user identities to Snowflake users
+- Defines role access for authenticated users
+- Establishes trust between Snowflake and your OAuth provider
 
 #### Prerequisites for Security Integration
 
@@ -274,7 +242,7 @@ CREATE USER john_doe
 
 There are two approaches for role access:
 
-**Option A: Any Role (Recommended for this repo)**
+**Option A: Any Role (Used in this repository)**
 ```sql
 -- Security integration with ANY role enabled
 EXTERNAL_OAUTH_ANY_ROLE_MODE = 'ENABLE'
@@ -450,18 +418,16 @@ GRANT ROLE desired_role TO USER user_name;
 - [ ] Test connection with OAuth token
 - [ ] Verify query attribution in query history
 
-For detailed Snowflake documentation, see: [Configure Okta for External OAuth](https://docs.snowflake.com/en/user-guide/oauth-okta#create-a-security-integration-for-okta)
+**Documentation:** [Configure Okta for External OAuth](https://docs.snowflake.com/en/user-guide/oauth-okta#create-a-security-integration-for-okta)
 
----
-
-## 🚀 Quick Start
+## Quick Start
 
 ### Prerequisites
 
-- Python 3.8+
-- Okta account with OAuth application configured
-- **Snowflake Security Integration created** (see section above)
-- Cortex Agents or Semantic Models (for AI features)
+- Python 3.8 or higher
+- Okta account with OAuth application
+- Snowflake account with Security Integration configured
+- Cortex Agents or Analyst (for AI applications)
 
 ### Installation
 
@@ -505,9 +471,7 @@ For detailed Snowflake documentation, see: [Configure Okta for External OAuth](h
    python agent_app.py
    ```
 
----
-
-## 📊 Tracking Users in Snowflake
+## User Tracking in Snowflake
 
 ### Query Attribution
 
@@ -546,9 +510,7 @@ Meet regulatory requirements with complete audit trails:
 - **HIPAA:** Audit access to protected health information
 - **SOX:** Financial data access attribution
 
----
-
-## 🔒 Security Advantages
+## Security Advantages
 
 ### 1. **No Shared Credentials**
 - Each user has their own authentication
@@ -575,9 +537,7 @@ Meet regulatory requirements with complete audit trails:
 - Centralized user management
 - MFA enforcement at identity provider level
 
----
-
-## 💼 Business Use Cases
+## Use Cases
 
 ### Customer Analytics Portal
 **Scenario:** Give customers access to their own analytics
@@ -605,9 +565,7 @@ Meet regulatory requirements with complete audit trails:
 - Access limited to agreed-upon data sets
 - Full visibility into partner data usage
 
----
-
-## 🎓 Key Concepts
+## Key Concepts
 
 ### OAuth Terminology
 
@@ -625,10 +583,10 @@ Meet regulatory requirements with complete audit trails:
 
 **External OAuth Configuration:**
 
-Snowflake requires a Security Integration to validate OAuth tokens. This one-time setup tells Snowflake:
-1. Trust tokens from your Okta authorization server
-2. Map the token's `sub` claim to Snowflake user's identity
-3. Run queries as the authenticated user (not a service account)
+Snowflake requires a Security Integration to validate OAuth tokens. This configuration:
+1. Establishes trust with the Okta authorization server
+2. Maps the token's `sub` claim to Snowflake user identity
+3. Executes queries as the authenticated user
 
 ```sql
 -- Example Security Integration
@@ -644,11 +602,9 @@ CREATE SECURITY INTEGRATION okta_oauth
     EXTERNAL_OAUTH_ANY_ROLE_MODE = 'ENABLE';
 ```
 
-📖 **For complete setup instructions, see the [Snowflake Configuration](#️-snowflake-configuration) section above.**
+See the [Snowflake Configuration](#snowflake-configuration) section for complete setup instructions.
 
----
-
-## 🛠️ Technical Stack
+## Technical Stack
 
 - **Backend:** FastAPI (Python)
 - **Authentication:** OAuth 2.0 Authorization Code Flow with PKCE
@@ -658,9 +614,7 @@ CREATE SECURITY INTEGRATION okta_oauth
 - **Frontend:** Vanilla JavaScript with SSE for streaming
 - **Security:** Environment variables, httpOnly cookies, CSRF protection
 
----
-
-## 📚 Additional Resources
+## Additional Resources
 
 ### Documentation
 - [Snowflake External OAuth](https://docs.snowflake.com/en/user-guide/oauth-external)
@@ -668,14 +622,7 @@ CREATE SECURITY INTEGRATION okta_oauth
 - [OAuth 2.0 RFC 6749](https://datatracker.ietf.org/doc/html/rfc6749)
 - [PKCE RFC 7636](https://datatracker.ietf.org/doc/html/rfc7636)
 
-### Tutorials
-- [OAuth Testing Scripts](./oauth_testing/README.md)
-- [Simple App Guide](./simple_app/README.md)
-- [Agent App Guide](./agent_app/README.md)
-
----
-
-## 🤝 Contributing
+## Contributing
 
 This repository serves as a reference implementation. Feel free to:
 - Adapt for your use case
@@ -683,9 +630,7 @@ This repository serves as a reference implementation. Feel free to:
 - Integrate with different identity providers
 - Add more Cortex capabilities
 
----
-
-## 🔐 Security Best Practices
+## Security Best Practices
 
 1. **Never commit `.env` files** - Contains sensitive credentials
 2. **Rotate credentials regularly** - Update client secrets periodically
@@ -696,15 +641,11 @@ This repository serves as a reference implementation. Feel free to:
 7. **Use short token lifetimes** - Minimize exposure window
 8. **Implement proper session management** - Secure cookies, session timeout
 
----
-
-## 📝 License
+## License
 
 This is a reference implementation for educational and demonstration purposes.
 
----
-
-## ❓ FAQ
+## FAQ
 
 **Q: Why OAuth instead of username/password?**
 A: OAuth is more secure (no password exposure), supports SSO, enables fine-grained permissions, and provides better audit trails.
@@ -719,23 +660,20 @@ A: No. Multiple applications can share the same authorization server. Each app g
 A: Use refresh tokens to get new access tokens automatically. All three apps demonstrate this.
 
 **Q: Is this production-ready?**
-A: The auth flow is production-grade. Add proper error handling, monitoring, and session storage (Redis/database) for production use.
+A: The authentication flow is production-grade. For production deployment, add proper error handling, monitoring, logging, and persistent session storage (Redis or database).
 
 **Q: How much does this cost?**
 A: OAuth integration is included with Snowflake Enterprise Edition and above. Okta has free developer accounts.
 
----
+## Getting Started
 
-## 🎉 Getting Started
+To implement OAuth for your Snowflake applications:
 
-Ready to implement secure OAuth for your Snowflake applications?
+1. Review `oauth_testing/` to understand the OAuth flow
+2. Configure the Snowflake Security Integration
+3. Run `simple_app/` to see a complete web application
+4. Explore `agent_app/` for streaming and multi-agent features
+5. Adapt the code for your specific requirements
 
-1. Start with `oauth_testing/` to understand the flow
-2. Run `simple_app/` to see a complete application
-3. Explore `agent_app/` for advanced streaming features
-4. Adapt the code for your use case
-
-**Every user. Every query. Full attribution. Zero shared accounts.**
-
-That's the power of OAuth with Snowflake.
+This approach provides individual user attribution for every query, eliminating shared service accounts and improving security, compliance, and governance.
 
