@@ -720,6 +720,32 @@ async def chat_interface(request: Request):
     if not user:
         return RedirectResponse(url="/login", status_code=302)
     
+    # Get Snowflake role
+    snowflake_role = "Unknown"
+    try:
+        access_token = session_data.get("access_token")
+        if access_token:
+            conn_params = {
+                'account': SNOWFLAKE_ACCOUNT,
+                'user': user.get('email', 'unknown'),
+                'authenticator': 'oauth',
+                'token': access_token,
+                'warehouse': SNOWFLAKE_WAREHOUSE,
+                'database': SNOWFLAKE_DATABASE,
+                'schema': SNOWFLAKE_SCHEMA
+            }
+            conn = sc.connect(**conn_params)
+            cs = conn.cursor()
+            cs.execute("SELECT CURRENT_ROLE();")
+            result = cs.fetchone()
+            if result:
+                snowflake_role = result[0]
+            cs.close()
+            conn.close()
+    except Exception as e:
+        print(f"⚠️ Could not fetch Snowflake role: {str(e)}")
+        snowflake_role = "Error fetching role"
+    
     html_content = f"""
     <!DOCTYPE html>
     <html>
@@ -929,7 +955,10 @@ async def chat_interface(request: Request):
         <div class="header">
             <div>
                 <h1>🤖 Cortex Analyst Chat</h1>
-                <div class="user-info">Authenticated as: {user.get('email', 'User')}</div>
+                <div class="user-info">
+                    Authenticated as: {user.get('email', 'User')}<br>
+                    Snowflake Default role: {snowflake_role}
+                </div>
             </div>
             <div>
                 <a href="/" class="btn">← Back to Dashboard</a>
