@@ -2,6 +2,12 @@
 
 A reference implementation of OAuth 2.0 Authorization Code Flow with PKCE for Snowflake applications. This repository demonstrates how to implement user-based authentication instead of service accounts, enabling individual user tracking and audit trails.
 
+## Demo
+
+![Cortex Agent Chat with OAuth](ext-oauth-sf-cortex-agents.gif)
+
+*Real-time streaming chat with Snowflake Cortex Agents using OAuth authentication - each query runs as the authenticated user with full audit trail.*
+
 ## Why User-Based Authentication
 
 Traditional Snowflake integrations typically use a shared service account, which creates several problems:
