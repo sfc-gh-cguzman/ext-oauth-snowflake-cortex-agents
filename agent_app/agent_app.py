@@ -275,8 +275,34 @@ async def home(request: Request):
         # Show landing page
         return landing_page()
     
+    # Get Snowflake role
+    snowflake_role = "Unknown"
+    try:
+        access_token = session_data.get("access_token")
+        if access_token:
+            conn_params = {
+                'account': SNOWFLAKE_ACCOUNT,
+                'user': user.get('email', 'unknown'),
+                'authenticator': 'oauth',
+                'token': access_token,
+                'warehouse': SNOWFLAKE_WAREHOUSE,
+                'database': SNOWFLAKE_DATABASE,
+                'schema': SNOWFLAKE_SCHEMA
+            }
+            conn = sc.connect(**conn_params)
+            cs = conn.cursor()
+            cs.execute("SELECT CURRENT_ROLE();")
+            result = cs.fetchone()
+            if result:
+                snowflake_role = result[0]
+            cs.close()
+            conn.close()
+    except Exception as e:
+        print(f"⚠️ Could not fetch Snowflake role: {str(e)}")
+        snowflake_role = "Error fetching role"
+    
     # Show chat interface if authenticated
-    return chat_interface(user)
+    return chat_interface(user, snowflake_role)
 
 def landing_page():
     """Beautiful landing page for unauthenticated users"""
@@ -485,7 +511,7 @@ def landing_page():
     """
     return HTMLResponse(content=html_content)
 
-def chat_interface(user: dict):
+def chat_interface(user: dict, snowflake_role: str = "Unknown"):
     """Chat interface for authenticated users"""
     html_content = f"""
     <!DOCTYPE html>
@@ -801,7 +827,10 @@ def chat_interface(user: dict):
         <div class="header">
             <div>
                 <h1>🤖 Cortex Agent Chat (Streaming)</h1>
-                <div class="user-info">Logged in as: {user.get('email', 'User')}</div>
+                <div class="user-info">
+                    Logged in as: {user.get('email', 'User')}<br>
+                    Snowflake Default role: {snowflake_role}
+                </div>
             </div>
             <div>
                 <a href="/logout" class="btn">Logout</a>
